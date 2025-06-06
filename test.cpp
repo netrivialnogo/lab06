@@ -69,22 +69,36 @@ TEST(Transaction, Mock) {
     MockAccount ac2(2, 10000);
     MockTransaction t1;
     
-   EXPECT_CALL(t1, SaveToDataBase(ac1, ac2, 1999)).Times(AtLeast(1));
-  t1.Make(ac1, ac2, 1999);
+    EXPECT_CALL(t1, SaveToDataBase(Ref(ac1), Ref(ac2), 1999)).Times(AtLeast(1));
+    t1.Make(ac1, ac2, 1999);
 }
 
 TEST(Transaction, Methods) {
     Account ac1(1, 10000);
-  Account ac2(2, 10000);
-  Transaction t1;
-  Transaction t2; t2.set_fee(500);
-  try {t1.Make(ac1, ac1, 100); EXPECT_EQ(1, 0);}
-  catch (std::logic_error& el) {}
-  try {t1.Make(ac1, ac2, -100); EXPECT_EQ(1, 0);}
-  catch (std::invalid_argument& el) {}
-  try {t1.Make(ac1, ac2, 0); EXPECT_EQ(1, 0);}
-  catch (std::logic_error& el) {}
-  EXPECT_EQ(false, t2.Make(ac1, ac2, 200));
-  t1.Make(ac1, ac2, 1999);
-  EXPECT_EQ(ac1.GetBalance(), 8000); EXPECT_EQ(ac2.GetBalance(), 11999);
+    Account ac2(2, 10000);
+    Transaction t1;
+    Transaction t2; t2.set_fee(500);
+    
+    try {
+        t1.Make(ac1, ac1, 100);
+        FAIL() << "Expected std::logic_error";
+    }
+    catch (std::logic_error& el) {}
+    
+    try {
+        t1.Make(ac1, ac2, -100);
+        FAIL() << "Expected std::invalid_argument";
+    }
+    catch (std::invalid_argument& el) {}
+    
+    try {
+        t1.Make(ac1, ac2, 0);
+        FAIL() << "Expected std::logic_error";
+    }
+    catch (std::logic_error& el) {}
+    
+    EXPECT_EQ(false, t2.Make(ac1, ac2, 200));
+    t1.Make(ac1, ac2, 1999);
+    EXPECT_EQ(8000, ac1.GetBalance());
+    EXPECT_EQ(11999, ac2.GetBalance());
 }
