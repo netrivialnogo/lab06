@@ -41,8 +41,10 @@ TEST(Transaction, Mock) {
   MockAccount ac1(1, 10000);
   MockAccount ac2(2, 10000);
   MockTransaction t1;
-  EXPECT_CALL(t1, SaveToDataBase(::testing::Eq(::testing::ByRef(ac1)), 
-                          ::testing::Eq(::testing::ByRef(ac2)), 1999)).Times(AtLeast(1));
+  
+  EXPECT_CALL(t1, SaveToDataBase(::testing::Ref(ac1), ::testing::Ref(ac2), 1999))
+      .Times(AtLeast(1));
+  
   t1.Make(ac1, ac2, 1999);
 }
 
