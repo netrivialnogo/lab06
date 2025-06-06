@@ -1,72 +1,93 @@
-name: CMake with Coverage
-
-on:
-  push:
-    branches: [master]
-  pull_request:
-    branches: [master]
-
-env:
-  BUILD_TYPE: Release
+name: Build and Package
+on: [push, pull_request]
 
 jobs:
-  build-and-test:
-    runs-on: ubuntu-24.04
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        submodules: recursive
-        
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y g++-9 lcov cmake
-        
-    - name: Create build directory
-      run: mkdir -p _build
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       
-    - name: Configure CMake
-      working-directory: _build
-      run: |
-        CXX=/usr/bin/g++-9 cmake -DCOVERAGE=ON -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} ..
-        
-    - name: Build project
-      working-directory: _build
-      run: cmake --build . --config ${{env.BUILD_TYPE}}
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            dpkg-dev \
+            rpm
       
-    - name: Run tests
-      working-directory: _build
-      run: ./RunTest
+      - name: Install Windows dependencies
+        if: matrix.os == 'windows-latest'
+        run: |
+          choco install wixtoolset -y
+          echo "WIX=C:\Program Files (x86)\WiX Toolset v3.11\bin" >> $GITHUB_ENV
       
-    - name: Generate coverage report
-      working-directory: _build
-      run: |
-        lcov --capture \
-             --directory . \
-             --output-file coverage.info \
-             --ignore-errors mismatch,unused \
-             --rc branch_coverage=1 \
-             --rc geninfo_unexecuted_blocks=1
-        
-        lcov --remove coverage.info \
-             '/usr/*' \
-             '*/googletest/*' \
-             '*/test/*' \
-             '*/gtest/*' \
-             '*/gmock/*' \
-             --output-file filtered.info \
-             --ignore-errors unused
+      - name: Prepare Windows license file
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          if (!(Test-Path "LICENSE.rtf")) {
+              " " | Out-File -Encoding ASCII "LICENSE.rtf"
+          }
+      
+      - name: Install macOS dependencies
+        if: matrix.os == 'macos-latest'
+        run: brew install cmake
+      
 
-        genhtml --branch-coverage \
-                --title "Test Coverage" \
-                --output-directory coverage \
-                filtered.info \
-                --ignore-errors unmapped,unused
-        
-    - name: Upload coverage report
-      uses: actions/upload-artifact@v4
-      with:
-        name: coverage-report
-        path: _build/coverage
+      - name: Configure CMake
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+      
+      - name: Build project
+        run: cmake --build build --config Release
+
+      - name: Create Linux packages
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cd build
+          cpack -G TGZ
+          cpack -G DEB
+          cpack -G RPM
+      
+      - name: Create Windows package
+        if: matrix.os == 'windows-latest'
+        run: |
+          cd build
+          cpack -G WIX -C Release -V --debug
+      
+      - name: Create macOS package
+        if: matrix.os == 'macos-latest'
+        run: |
+          cd build
+          cpack -G DragNDrop
+
+      - name: Upload Windows artifacts
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Windows-Packages
+          path: build/*.msi
+      
+      - name: Upload Linux artifacts
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Linux-Packages
+          path: |
+            build/*.deb
+            build/*.rpm
+            build/*.tar.gz
+      
+      - name: Upload macOS artifacts
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: macOS-Packages
+          path: build/*.dmg
