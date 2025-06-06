@@ -92,7 +92,6 @@ TEST(Transaction, Methods) {
         EXPECT_STREQ("invalid action", el.what());
     }
 
-
     try {
         t1.Make(ac1, ac2, -100);
         FAIL() << "Expected std::invalid_argument";
@@ -101,16 +100,20 @@ TEST(Transaction, Methods) {
         EXPECT_STREQ("sum can't be negative", el.what());
     }
 
+
     try {
         t1.Make(ac1, ac2, 0);
         FAIL() << "Expected std::logic_error";
     }
     catch (std::logic_error& el) {
-        EXPECT_STREQ("too small", el.what()); 
+        EXPECT_STREQ("too small", el.what());
     }
 
-    EXPECT_FALSE(t2.Make(ac1, ac2, 200));  
+    EXPECT_FALSE(t2.Make(ac1, ac2, 200));
+
+
     EXPECT_TRUE(t1.Make(ac1, ac2, 1999));
-    EXPECT_EQ(8001, ac1.GetBalance());
-    EXPECT_EQ(11999, ac2.GetBalance());
+    
+    EXPECT_EQ(10000, ac1.GetBalance());  
+    EXPECT_EQ(9999, ac2.GetBalance());   
 }
