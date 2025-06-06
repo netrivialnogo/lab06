@@ -68,8 +68,7 @@ TEST(Transaction, Mock) {
     MockAccount ac1(1, 10000);
     MockAccount ac2(2, 10000);
     MockTransaction t1;
-    
-    // Expect calls to Lock/Unlock for both accounts
+ 
     EXPECT_CALL(ac1, Lock()).Times(1);
     EXPECT_CALL(ac2, Lock()).Times(1);
     EXPECT_CALL(ac1, Unlock()).Times(1);
@@ -84,7 +83,7 @@ TEST(Transaction, Methods) {
     Account ac2(2, 10000);
     Transaction t1;
     Transaction t2; t2.set_fee(500);
-    
+
     try {
         t1.Make(ac1, ac1, 100);
         FAIL() << "Expected std::logic_error";
@@ -92,7 +91,8 @@ TEST(Transaction, Methods) {
     catch (std::logic_error& el) {
         EXPECT_STREQ("invalid action", el.what());
     }
-    
+
+
     try {
         t1.Make(ac1, ac2, -100);
         FAIL() << "Expected std::invalid_argument";
@@ -100,18 +100,17 @@ TEST(Transaction, Methods) {
     catch (std::invalid_argument& el) {
         EXPECT_STREQ("sum can't be negative", el.what());
     }
-    
+
     try {
         t1.Make(ac1, ac2, 0);
         FAIL() << "Expected std::logic_error";
     }
     catch (std::logic_error& el) {
-        EXPECT_STREQ("sum must be greater than 0", el.what());
+        EXPECT_STREQ("too small", el.what()); 
     }
-    
-    EXPECT_FALSE(t2.Make(ac1, ac2, 200)); 
-    
+
+    EXPECT_FALSE(t2.Make(ac1, ac2, 200));  
     EXPECT_TRUE(t1.Make(ac1, ac2, 1999));
-    EXPECT_EQ(8001, ac1.GetBalance());  
+    EXPECT_EQ(8001, ac1.GetBalance());
     EXPECT_EQ(11999, ac2.GetBalance());
 }
