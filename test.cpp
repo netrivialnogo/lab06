@@ -58,7 +58,7 @@ TEST(Account, Methods) {
         FAIL() << "Expected std::runtime_error";
     }
     catch (const std::runtime_error& e) {
-        EXPECT_STREQ("Account is not locked!", e.what());
+        EXPECT_STREQ("at first lock the account", e.what());
     }
     
     EXPECT_EQ(3000, ac1.GetBalance());
@@ -69,7 +69,13 @@ TEST(Transaction, Mock) {
     MockAccount ac2(2, 10000);
     MockTransaction t1;
     
-    EXPECT_CALL(t1, SaveToDataBase(Ref(ac1), Ref(ac2), 1999)).Times(AtLeast(1));
+    // Expect calls to Lock/Unlock for both accounts
+    EXPECT_CALL(ac1, Lock()).Times(1);
+    EXPECT_CALL(ac2, Lock()).Times(1);
+    EXPECT_CALL(ac1, Unlock()).Times(1);
+    EXPECT_CALL(ac2, Unlock()).Times(1);
+    
+    EXPECT_CALL(t1, SaveToDataBase(Ref(ac1), Ref(ac2), 1999)).Times(1);
     t1.Make(ac1, ac2, 1999);
 }
 
@@ -83,22 +89,29 @@ TEST(Transaction, Methods) {
         t1.Make(ac1, ac1, 100);
         FAIL() << "Expected std::logic_error";
     }
-    catch (std::logic_error& el) {}
+    catch (std::logic_error& el) {
+        EXPECT_STREQ("invalid action", el.what());
+    }
     
     try {
         t1.Make(ac1, ac2, -100);
         FAIL() << "Expected std::invalid_argument";
     }
-    catch (std::invalid_argument& el) {}
+    catch (std::invalid_argument& el) {
+        EXPECT_STREQ("sum can't be negative", el.what());
+    }
     
     try {
         t1.Make(ac1, ac2, 0);
         FAIL() << "Expected std::logic_error";
     }
-    catch (std::logic_error& el) {}
+    catch (std::logic_error& el) {
+        EXPECT_STREQ("sum must be greater than 0", el.what());
+    }
     
-    EXPECT_EQ(false, t2.Make(ac1, ac2, 200));
-    t1.Make(ac1, ac2, 1999);
-    EXPECT_EQ(8000, ac1.GetBalance());
+    EXPECT_FALSE(t2.Make(ac1, ac2, 200)); 
+    
+    EXPECT_TRUE(t1.Make(ac1, ac2, 1999));
+    EXPECT_EQ(8001, ac1.GetBalance());  
     EXPECT_EQ(11999, ac2.GetBalance());
 }
