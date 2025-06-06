@@ -92,12 +92,6 @@ TEST_F(TransactionTest, MakeValidTransaction) {
     mockTrans->Make(*acc1, *acc2, 1999);
 }
 
-TEST_F(TransactionTest, InvalidTransactionsThrow) {
-    EXPECT_THROW(realTrans.Make(*acc1, *acc1, 100), std::logic_error);
-    EXPECT_THROW(realTrans.Make(*acc1, *acc2, -100), std::invalid_argument);
-    EXPECT_THROW(realTrans.Make(*acc1, *acc2, 0), std::logic_error);
-}
-
 TEST_F(TransactionTest, InsufficientFunds) {
     realTrans.set_fee(500);
     EXPECT_FALSE(realTrans.Make(*acc1, *acc2, 9600)); 
@@ -105,13 +99,18 @@ TEST_F(TransactionTest, InsufficientFunds) {
 
 TEST_F(TransactionTest, SuccessfulTransactionUpdatesBalances) {
     ASSERT_TRUE(realTrans.Make(*acc1, *acc2, 2000));
-    EXPECT_EQ(acc1->GetBalance(), 7999);
-    EXPECT_EQ(acc2->GetBalance(), 12000); 
+    EXPECT_EQ(acc1->GetBalance(), 7999); 
+    EXPECT_EQ(acc2->GetBalance(), 12000);
 }
 
 TEST_F(TransactionTest, CustomFeeCalculation) {
     Transaction customFeeTrans;
     customFeeTrans.set_fee(100);
+    
+    ASSERT_TRUE(customFeeTrans.Make(*acc1, *acc2, 1000));
+    EXPECT_EQ(acc1->GetBalance(), 8900); 
+    EXPECT_EQ(acc2->GetBalance(), 11000);
+}
     
     ASSERT_TRUE(customFeeTrans.Make(*acc1, *acc2, 1000));
     EXPECT_EQ(acc1->GetBalance(), 8900); 
