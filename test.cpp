@@ -87,7 +87,7 @@ protected:
 };
 
 TEST_F(TransactionTest, MakeValidTransaction) {
-    EXPECT_CALL(*mockTrans, SaveToDataBase(Ref(*acc1), Ref(*acc2), 1999))
+    EXPECT_CALL(*mockTrans, SaveToDataBase(testing::Ref(*acc1), testing::Ref(*acc2), 1999))
         .Times(1);
     mockTrans->Make(*acc1, *acc2, 1999);
 }
